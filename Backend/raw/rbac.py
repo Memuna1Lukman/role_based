@@ -1,6 +1,6 @@
 from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
-from .routes import models
+from . import models
 
 
 def is_admin(user: models.Users) -> bool:
