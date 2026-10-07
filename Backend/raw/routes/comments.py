@@ -1,6 +1,6 @@
 from fastapi import APIRouter,Depends,status
 from sqlalchemy.orm  import Session
-from .. import models,schemas,oauth2,rbac,activity
+from .. import models,schemas,oauth,rbac,activity
 from ..database import get_db
 from typing import List
 
@@ -13,7 +13,7 @@ router = APIRouter(tags=["Comments"], prefix="/tasks/{task_id}/comments")
 def get_comments(
     task_id: int,
     db: Session = Depends(get_db),
-    current_user: models.Users = Depends(oauth2.get_current_user)):
+    current_user: models.Users = Depends(oauth.get_current_user)):
     task = rbac.get_task_or_404(db,task_id)
     rbac.require_member(db,task.project_id,current_user)
 
@@ -30,7 +30,7 @@ def create_comment(
     comment: schemas.CommentCreate,
     task_id: int,
     db: Session = Depends(get_db),
-    current_user: models.Users = Depends(oauth2.get_current_user)):
+    current_user: models.Users = Depends(oauth.get_current_user)):
     task = rbac.get_task_or_404(db,task_id)
     rbac.require_member(db,task.project_id,current_user)
 
