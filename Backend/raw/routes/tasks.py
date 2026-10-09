@@ -1,5 +1,5 @@
 from fastapi import APIRouter,HTTPException,status,Depends,Response,Query
-from .. import models,schemas,oauth2,rbac,activity
+from .. import models,schemas,oauth,rbac,activity
 from ..database  import get_db
 from sqlalchemy.orm import Session
 from typing import List,Optional
@@ -26,7 +26,7 @@ def get_tasks(
     status_filter:Optional[models.TaskStatus] = Query(None,alias="status"),
     assignee_id:Optional[int] = None,
     db:Session = Depends(get_db),
-    current_user:models.Users = Depends(oauth2.get_current_user)):
+    current_user:models.Users = Depends(oauth.get_current_user)):
     rbac.get_project_or_404(db,project_id)
     rbac.require_member(db,project_id,current_user)
 
@@ -44,7 +44,7 @@ def create_task(
     task:schemas.CreateTasks,
     project_id:int,
     db:Session = Depends(get_db),
-    current_user:models.Users = Depends(oauth2.get_current_user)):
+    current_user:models.Users = Depends(oauth.get_current_user)):
     rbac.get_project_or_404(db,project_id)
     rbac.require_lead(db,project_id,current_user)
     check_assignee(db,project_id,task.assignee_id)
@@ -63,7 +63,7 @@ def create_task(
         payload={"task_id":new_task.id,"project_id":project_id}
     )
 
-    db.commit()
+    activity.commit(db)
     db.refresh(new_task)
     return new_task
 
@@ -72,7 +72,7 @@ def create_task(
 def get_one_task(
     task_id:int,
     db:Session = Depends(get_db),
-    current_user:models.Users = Depends(oauth2.get_current_user)):
+    current_user:models.Users = Depends(oauth.get_current_user)):
     task = rbac.get_task_or_404(db,task_id)
     rbac.require_member(db,task.project_id,current_user)
     return task
@@ -85,7 +85,7 @@ def edit_task(
     task_id:int,
     payload:schemas.TaskUpdate,
     db:Session = Depends(get_db),
-    current_user:models.Users = Depends(oauth2.get_current_user)):
+    current_user:models.Users = Depends(oauth.get_current_user)):
     task = rbac.get_task_or_404(db,task_id)
     rbac.require_member(db,task.project_id,current_user)
 
@@ -154,7 +154,7 @@ def edit_task(
             {"title":task.title,"fields":sorted(other_fields)}
         )
 
-    db.commit()
+    activity.commit(db)
     db.refresh(task)
     return task
 
@@ -164,7 +164,7 @@ def edit_task(
 def delete_task(
     task_id:int,
     db:Session = Depends(get_db),
-    current_user:models.Users = Depends(oauth2.get_current_user)):
+    current_user:models.Users = Depends(oauth.get_current_user)):
     task = rbac.get_task_or_404(db,task_id)
     rbac.require_lead(db,task.project_id,current_user)
 
@@ -173,5 +173,5 @@ def delete_task(
         {"title":task.title}
     )
     db.delete(task)
-    db.commit()
+    activity.commit(db)
     return Response(status_code=status.HTTP_204_NO_CONTENT)

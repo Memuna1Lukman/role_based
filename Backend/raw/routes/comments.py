@@ -54,6 +54,6 @@ def create_comment(
             payload={"task_id":task.id,"comment_id":new_comment.id}
         )
 
-    db.commit()
+    activity.commit(db)
     db.refresh(new_comment)
     return new_comment

@@ -57,7 +57,7 @@ def create_project(
         {"name":new_project.name}
     )
  
-    db.commit()
+    activity.commit(db)
     db.refresh(new_project)
     return new_project
  
@@ -95,7 +95,7 @@ def edit_project(
         {"name":project.name,"fields":sorted(changes)}
     )
  
-    db.commit()
+    activity.commit(db)
     db.refresh(project)
     return project
  
@@ -111,7 +111,7 @@ def delete_project(
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN,detail="Admin access required")
  
     db.delete(project)
-    db.commit()
+    activity.commit(db)
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
@@ -158,7 +158,7 @@ def add_member(
         payload={"project_id":project_id,"role":payload.role.value}
     )
  
-    db.commit()
+    activity.commit(db)
     db.refresh(new_member)
     return new_member
  
@@ -198,7 +198,7 @@ def change_member_role(
         link=f"/projects/{project_id}",payload={"project_id":project_id,"role":payload.role.value}
     )
  
-    db.commit()
+    activity.commit(db)
     db.refresh(member)
     return member
  
@@ -238,5 +238,5 @@ def remove_member(
     )
  
     db.delete(member)
-    db.commit()
+    activity.commit(db)
     return Response(status_code=status.HTTP_204_NO_CONTENT)

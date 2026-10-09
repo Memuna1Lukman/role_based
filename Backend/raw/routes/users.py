@@ -5,6 +5,7 @@ from ..database import get_db
 from sqlalchemy import or_
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
+from datetime import datetime, timezone
 
 router = APIRouter(
     tags=["Users"],
@@ -13,8 +14,8 @@ router = APIRouter(
 
 @router.post("/",status_code=status.HTTP_201_CREATED,response_model=schemas.UserResponse)
 def create_new_user(user:schemas.UserInputs,db:Session = Depends(get_db)):
-    user_model = user.model_dump()
-    user_model["password_hash"] = utils.get_password_hash(user.password_hash)
+    user_model = user.model_dump(exclude={"password"})
+    user_model["password_hash"] = utils.get_password_hash(user.password)
     user_data = models.Users(**user_model)
     try:
         db.add(user_data)
@@ -91,7 +92,13 @@ def update_user_active(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,detail="User not found")
 
     target_user.is_active = payload.is_active
-    # later: when you add RefreshToken, revoke this user's sessions here if is_active is False
+    # Deactivated users lose every active session immediately; access-token checks also
+    # reject inactive accounts before a token can be refreshed.
+    if not target_user.is_active:
+        db.query(models.RefreshToken).filter(
+            models.RefreshToken.user_id == target_user.id,
+            models.RefreshToken.revoked_at.is_(None),
+        ).update({"revoked_at": datetime.now(timezone.utc)})
     db.commit()
     db.refresh(target_user)
     return target_user
